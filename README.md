@@ -8,14 +8,16 @@ They are not perfect in any way and subject to change. Once these tools mature e
 
 ## IsSymlinked
 
-A tool to check whether a Program's files are symlinked against `/System/Index/**`. It lists potential conflicts, too.
+`IsSymlinked` checks whether the program files of a Program are symlinked against `/System/Index/**`.
 
-Example usage:
+It lists potential conflicts as well.
+
+*Example usage:*
 ```bash
 $ IsSymlinked Zsh [<version_number>]
 ```
 
-Sample output:
+*Sample output:*
 ```
 IsSymlinked: ✗‼ ZSH/5.8/bin/zsh.old  (** Internally broken symlink! **)
 IsSymlinked: ✔  ZSH/5.8/bin/zsh
@@ -35,11 +37,17 @@ IsSymlinked: ✔  ZSH/5.8/share/man/man1/zshmodules.1
 IsSymlinked: ✔  ZSH/5.8/share/man/man1/zsh.1
 IsSymlinked: ✔↑ ZSH/5.8/lib/zsh/5.8/zsh/nearcolor.so  -> via Parent: zsh@
 ```
-To scan a single program file use:
+### In order to scan only a single program file:
 > [!NOTE]  
 > Interface not yet implemented
+
+*Example usage:*
 ```bash
-$ IsSymlinked -f /Programs/*/*/<program_file>
+$ IsSymlinked -f /Programs/ZSH/5.8/bin/zsh.old
+```
+*Sample output:*
+```bash
+IsSymlinked: ✗‼ ZSH/5.8/bin/zsh.old  (** Internally broken symlink! **)
 ```
 
 ## GetConflicts
@@ -48,12 +56,12 @@ $ IsSymlinked -f /Programs/*/*/<program_file>
 
 Conflicts are saved locally to `conflicts.txt`.
 
-Example usage:
+*Example usage:*
 ```bash
 $ GetConflicts
 ```
 
-Sample `conflicts.txt`:
+*Sample `conflicts.txt`:*
 
 ```
 ALSA-Firmware 1.2.4 [Linux-Firmware 20241002-GIT]
