@@ -12,7 +12,34 @@ A tool to check whether a Program's files are symlinked against `/System/Index/*
 
 Example usage:
 ```bash
-$ IsSymlinked Bash [<version_number>]
+$ IsSymlinked Zsh [<version_number>]
+```
+
+Sample output:
+```
+IsSymlinked: ✗‼ ZSH/5.8/bin/zsh.old  (** Internally broken symlink! **)
+IsSymlinked: ✔  ZSH/5.8/bin/zsh
+IsSymlinked: ✔  ZSH/5.8/bin/zsh-5.8
+IsSymlinked: ✔↑ ZSH/5.8/share/zsh/5.8/scripts/newuser  -> via Parent: 5.8@
+IsSymlinked: ✔  ZSH/5.8/share/man/man1/zshbuiltins.1
+IsSymlinked: ✔  ZSH/5.8/share/man/man1/zshmisc.1
+IsSymlinked: ✔  ZSH/5.8/share/man/man1/zshall.1
+IsSymlinked: ✔  ZSH/5.8/share/man/man1/zshroadmap.1
+IsSymlinked: ✔  ZSH/5.8/share/man/man1/zshexpn.1
+IsSymlinked: ✔  ZSH/5.8/share/man/man1/zshoptions.1
+IsSymlinked: ✔  ZSH/5.8/share/man/man1/zshzle.1
+IsSymlinked: ✔  ZSH/5.8/share/man/man1/zshtcpsys.1
+IsSymlinked: ✔  ZSH/5.8/share/man/man1/zshparam.1
+IsSymlinked: ✔  ZSH/5.8/share/man/man1/zshcompctl.1
+IsSymlinked: ✔  ZSH/5.8/share/man/man1/zshmodules.1
+IsSymlinked: ✔  ZSH/5.8/share/man/man1/zsh.1
+IsSymlinked: ✔↑ ZSH/5.8/lib/zsh/5.8/zsh/nearcolor.so  -> via Parent: zsh@
+```
+To scan a single program file use:
+> [!NOTE]  
+> Interface not yet implemented
+```bash
+$ IsSymlinked -f /Programs/*/*/<program_file>
 ```
 
 ## GetConflicts
@@ -20,6 +47,11 @@ $ IsSymlinked Bash [<version_number>]
 `GetConflicts` iterates over all programs (`/Programs/*/Current`) and shows potential conflicts.
 
 Conflicts are saved locally to `conflicts.txt`.
+
+Example usage:
+```bash
+$ GetConflicts
+```
 
 Sample `conflicts.txt`:
 
