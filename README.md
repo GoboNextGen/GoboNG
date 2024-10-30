@@ -1,5 +1,7 @@
 # GoboNG - Spicy GoboLinux tools
 
+![screenshot-2024-10-30-19-15-13](https://github.com/user-attachments/assets/ff70e548-7a34-4061-b15d-6a3d85bd8c14)
+
 This repository holds GoboLinux system tools that may prove useful in GoboLinux development.
 
 They are not perfect in any way and subject to change. Once these tools mature enough (and prove their usefullness) they can be considered for an inclusion to official GoboLinux `Scripts` or as separate entities.
