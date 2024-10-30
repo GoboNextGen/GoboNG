@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# or maybe better ListPrograms as general tool
+function getPrograms() {
+    ls -l $goboPrograms/*/Current | tr -s " " | cut -d " " -f9 | sed "s|$goboPrograms/||" | sed "s|/Current||"
+}
+
+readarray -t currentPrograms < <(getPrograms)
+# printf '%s\n'  ${currentPrograms[@]}
+for program in "${currentPrograms[@]}"; do
+    IsSymlinked $program
+done

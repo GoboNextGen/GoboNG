@@ -1,0 +1,131 @@
+#!/bin/bash
+
+### Imports ###################################################################
+
+source ScriptFunctions
+Import Log
+Import File
+Import OptionParser
+Import Versions
+
+### Options ###################################################################
+scriptVersion=017
+scriptDescription="Check a whether a Program or Program file is Symplinked in /System/Index/"
+scriptCredits="Copyright (C) 2024 NeoNsys.org. Released under the GNU GPLv2."
+scriptExample="Bash 5.0.0"
+helpOnNoArguments=yes
+scriptUsage="<program> [<version>] | <version_directory> | <program_file>"
+Add_Option_Boolean "f" "file" "Check only a specific program file"
+Parse_Options "$@"
+
+### Functions #################################################################
+
+function Program_xor_Version() {
+	# TODO: Truncate "/Programs/" from argument here 
+	# and then we can use bash substring substitution (rather than cut) below
+	while getopts "p:v:" opt; do
+		case ${opt} in
+			p) printf ${OPTARG} | cut -d / -f3; exit 0;;
+			v) printf ${OPTARG} | cut -d / -f4; exit 0;;
+			*) Die "Invalid Argument: ${OPTARG}."
+		esac
+	done
+	printf $1 | cut -d / -f3 | tr -d \\n && printf " "  && printf $1 | cut -d / -f4
+}
+
+function IsFileSymlinked() (
+## Missing Automake 1.17 Conflict: /Programs/Vala/0.56.17/share/aclocal/vala.m4 !!
+
+	# Basic Checks
+	Is_Broken_Link "$1" && Die_With $errorNotFound "✗‼ "${1#$goboPrograms/}"  ${colorYellow}(** Internally broken symlink! **)"
+	Exists "$1" || Die_With $errorNotFound "Error: "$1" not found."
+	[ "$(echo $1 | cut -d / -f-2)" != "$goboPrograms" ] && Die "Invalid input. Provided path is not inside the $goboPrograms tree!"
+
+	# Setting some useful variables
+	programFilePath=$(realpath --no-symlinks "$1") # program file
+	terseFilePath=${programFilePath#$goboPrograms/}
+	# package=$(Program_xor_Version -p $programFilePath) # eg "Bash"
+	# version=$(Program_xor_Version -v $programFilePath) # eg "5.0.0"
+	detachedDir=$(echo $programFilePath | cut -d / -f5-) # eg "include/bash/alias".
+	rootFolder=${detachedDir%%/*} # {bin,include,lib,lib64,libexec,sbin,share}
+	indexPath="$goboIndex/$detachedDir" # eg "/usr/include/bash/alias.sh"
+	errorConflict=3 # exit code on conflict
+	
+	# Check whether file exists in System Index
+	Exists "$indexPath" || Die_With $errorNotFound "✗  $terseFilePath ${colorYellow}(Not SymLinked)"
+
+	# Check whether file is a symlink. If it is not, maybe one of its parent dirs is.
+	# If the file is not a symlink, it could be symlinked via a parent directory.
+	if [ ! -L $indexPath ]; then
+		parentProgram=$(dirname $programFilePath)
+		parentIndex=$(dirname $indexPath)
+		while [ "$parentIndex" != "$goboIndex/$rootFolder" ]; do
+			if [ -L $parentIndex ] && [ "$(realpath $parentIndex)" == "$parentProgram" ];then
+				Log_Normal "✔↑ $terseFilePath "${colorNormal}" -> via Parent: ${colorBoldCyan}${parentProgram##*/}${colorNormal}@"
+				exit 0
+			fi
+			parentIndex=$(dirname $parentIndex)
+			parentProgram=$(dirname $parentProgram)
+		done
+		# If after all of this it is still not a symlink but is holding files, then that's probably by design (shared directory) -- TODO: TEST
+		if $(Is_Real_Nonempty_Directory "$indexPath") ;then
+			Log_Normal "⇄  $terseFilePath "${colorYellow}"is a shared directory on System Index"
+			exit 0
+		else	
+			Die "✗✗ $terseFilePath ${colorYellow} (Conflict is a broken symlink: ${colorNormal}"$indexPath"${colorYellow})"
+		fi
+	else
+		canonicalIndexPath=$(readlink -f $indexPath)
+	fi
+
+	# Check whether file is symlinked from /System/Index to /Programs, check for conflicts
+	if [ ! -L $programFilePath ]; then
+		[ ! $canonicalIndexPath == $programFilePath ] && \
+		Die_With $errorConflict "✗⇄ $terseFilePath ${colorYellow} (Conflict: $(Program_xor_Version $canonicalIndexPath))"
+	else # If the program file is an internal symlink we need some trickery
+		[ ! $canonicalIndexPath == $(realpath $programFilePath) ] && \
+		Die_With $errorConflict "✗⇄ $terseFilePath ${colorYellow} (Conflict: $(Program_xor_Version $canonicalIndexPath))"
+	fi
+
+	#Log_Normal "File is properly Symlinked in System Index!"
+	Log_Normal "✔  $terseFilePath"
+)
+
+### Main Operation #################################################################
+
+# IsFileSymlinked "$1"
+
+# Check a single file
+if Boolean file; then
+	IsFileSymlinked $1
+	exit $?
+fi
+
+Import PackageAndVersionFromArguments
+
+# Iterate over Program files
+# Todo: why doesnt it retain the /n?
+readarray -t programFiles < <(ListProgramFiles $package $version --path --files --links --no-resources | FilterLines -n "$package/$version/doc" | tac)
+# printf '%s\n'  ${programFiles[@]}
+for index in "${!programFiles[@]}"; do
+	if (( $index >= ${#programFiles[@]} )); then
+		break
+	fi
+	result=$(IsFileSymlinked $goboPrograms/${programFiles[$index]} 8>&1)
+	if [[ $result == *" ✔↑ "* ]]; then
+		parentLink=$(echo ${result##*:} | tr -d " " | tr -d "@" | FilterColors)
+		excludePath=$(echo ${programFiles[$index]} | grep -o "^.*/${parentLink}/")
+		# echo "exclude: "$excludePath
+		readarray programFiles < <(printf '%s\n' ${programFiles[@]} | FilterLines -n "$excludePath")
+	fi
+	if [[ $result == *" ✗⇄ "* ]] then
+		conflict=$(echo ${result#*Conflict: } | tr -d ")") # eg Bash 5.0.0
+		if ! grep -q "$package $version \[$conflict\]" conflicts.txt; then
+			echo "$package $version [$conflict]" >> conflicts.txt
+		fi
+		# Uncomment for program specific conflict.txt's later
+		# if ! grep -q "[$conflict]" conflicts--$package-$version.txt; then
+		# 	echo "$package $version [$conflict]" >> conflicts--$package-$version.txt
+		# fi
+	fi
+done
