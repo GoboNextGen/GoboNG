@@ -88,7 +88,7 @@ For example, according to this sample `Net-Tools 1.60` is not symlinked (well, a
 
 `FindRuntimeDeps PKG_NAME [PKG_VERSION]` iterates over all executable files for a package and shows all libraries linked against them (basic runtime dependencies).
 
-Dependencies are logged to stdout.
+Dependencies are logged to `stdout`.
 
 *Example usage:*
 ```bash
@@ -96,4 +96,4 @@ $ FindRuntimeDeps ATK 2.38.0
 $ FindRuntimeDeps ATK
 ```
 
-if no PKG_VERSION is provided 'Current' is used.
+if no `PKG_VERSION` is provided `Current` is used.
