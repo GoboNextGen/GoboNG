@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+
+program="$1"
+version="$2"
+version="${version:-Current}"
+
+program_dir=$(readlink -f "/Programs/${program}/${version}")
+
+ldd_out="$(find ${program_dir} -type f -perm /a+x -exec ldd {} \; \
+         |grep so \
+         |sed -e '/^[^\t]/ d' \
+         |sed -e 's/\t//' \
+         |sed -e 's/.*=..//' \
+         |sed -e 's/ (0.*)//' \
+         |sort \
+         |uniq)"
+
+
+dep_list=()
+for dep in ${ldd_out}
+do
+    echo "${dep}"
+    # shared virtual file, most executables link against it, ignore it
+    [[ "${dep}" != 'linux-vdso.so'* ]] || continue
+
+    # assume the given path is a link, expand it
+    # if the expanded path doesn't exist throw an error msg
+    link_path=$(readlink -f "${dep}")
+    if [[ ! -e "${link_path}" ]]
+    then
+        echo "Couldn't find '${dep}'"
+        continue
+    fi
+
+    # extract the name and version from the path
+    dep_name="${link_path#/Programs/}"
+    dep_name="${dep_name/\/*}"
+    dep_version="${link_path#/Programs/${dep_name}/}"
+    dep_version="${dep_version/\/*}"
+
+    # skip deps from the program we are checking
+    [[ "${dep_name}" != "${program}" ]] || continue
+
+    # add name/version to list
+    dep_list+=("${dep_name}-${dep_version}")
+done
+
+# print each unique element from the list
+echo "${dep_list[@]}" | sed -e 's/\ /\n/g' | sort | uniq
